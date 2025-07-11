@@ -1,14 +1,17 @@
---// MAIN CONFIG
-getgenv().LibraryColor = "#FF5555" -- User can override this
+--// Config
+getgenv().LibraryColor = getgenv().LibraryColor or "#FF5555"
 
---// Convert hex to Color3
-local function hexToColor3(hex)
+--// Utilities
+local function HexToRGB(hex)
     hex = hex:gsub("#", "")
-    return Color3.fromRGB(tonumber("0x" .. hex:sub(1,2)), tonumber("0x" .. hex:sub(3,4)), tonumber("0x" .. hex:sub(5,6)))
+    return Color3.fromRGB(tonumber("0x" .. hex:sub(1, 2)), tonumber("0x" .. hex:sub(3, 4)), tonumber("0x" .. hex:sub(5, 6)))
 end
 
---// Notification System
+local accentColor = HexToRGB(getgenv().LibraryColor)
+
+--// NOTIFICATION SYSTEM
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -29,7 +32,7 @@ uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 uiListLayout.Padding = UDim.new(0, 4)
 uiListLayout.Parent = notificationArea
 
-local function LibraryNotify(text, duration)
+function LibraryNotify(text, duration)
     duration = duration or 5
     local textSize = 14
     local padding = 8
@@ -48,7 +51,7 @@ local function LibraryNotify(text, duration)
     local accentBar = Instance.new("Frame")
     accentBar.Size = UDim2.new(0, 4, 1, 0)
     accentBar.Position = UDim2.new(0, 0, 0, 0)
-    accentBar.BackgroundColor3 = hexToColor3(getgenv().LibraryColor)
+    accentBar.BackgroundColor3 = accentColor
     accentBar.BorderSizePixel = 0
     accentBar.Parent = outerFrame
 
@@ -63,123 +66,140 @@ local function LibraryNotify(text, duration)
     label.Size = UDim2.new(1, -8, 1, 0)
     label.Parent = outerFrame
 
-    local tweenService = game:GetService("TweenService")
     local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local tween = tweenService:Create(outerFrame, tweenInfo, {Size = UDim2.new(0, width, 0, height)})
-    tween:Play()
+    local goal = {Size = UDim2.new(0, width, 0, height)}
+    TweenService:Create(outerFrame, tweenInfo, goal):Play()
 
     task.delay(duration, function()
-        local closeTween = tweenService:Create(outerFrame, tweenInfo, {Size = UDim2.new(0, 0, 0, height)})
+        local closeGoal = {Size = UDim2.new(0, 0, 0, height)}
+        local closeTween = TweenService:Create(outerFrame, tweenInfo, closeGoal)
         closeTween:Play()
         closeTween.Completed:Wait()
         outerFrame:Destroy()
     end)
 end
 
-getgenv().LibraryNotify = LibraryNotify
+--// WATERMARK
+function LibraryWatermark(text)
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Parent = game:GetService("CoreGui")
 
---// Watermark
-getgenv().LibraryWatermark = function(titleText)
-    local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-    gui.Name = "LibraryWatermark"
+    local WatermarkFrame = Instance.new("Frame")
+    WatermarkFrame.Size = UDim2.new(0, 150, 0, 30)
+    WatermarkFrame.Position = UDim2.new(0, 20, 0, 20)
+    WatermarkFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    WatermarkFrame.BorderColor3 = accentColor
+    WatermarkFrame.BorderSizePixel = 2
+    WatermarkFrame.Parent = ScreenGui
 
-    local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 150, 0, 30)
-    frame.Position = UDim2.new(0, 20, 0, 20)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    frame.BorderColor3 = hexToColor3(getgenv().LibraryColor)
-    frame.BorderSizePixel = 2
-
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(1, -10, 1, 0)
-    label.Position = UDim2.new(0, 5, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = tostring(titleText or "Watermark")
-    label.TextColor3 = Color3.new(1, 1, 1)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 14
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -10, 1, 0)
+    Label.Position = UDim2.new(0, 5, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = text or "Watermark"
+    Label.TextColor3 = Color3.new(1, 1, 1)
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Font = Enum.Font.SourceSans
+    Label.TextSize = 14
+    Label.Parent = WatermarkFrame
 end
 
---fps sh
-getgenv().LibraryStatus = function()
-    local UIS = game:GetService("UserInputService")
+--// STATUS (FPS + Ping)
+function LibraryStatus()
+    local UserInputService = game:GetService("UserInputService")
     local RunService = game:GetService("RunService")
-    local Stats = game:GetService("Stats")
 
-    local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-    gui.Name = "LibraryStatus"
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Parent = game:GetService("CoreGui")
 
-    local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 220, 0, 30)
-    frame.Position = UDim2.new(0, 100, 0, 100)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    frame.BorderColor3 = hexToColor3(getgenv().LibraryColor)
-    frame.BorderSizePixel = 2
+    local WatermarkFrame = Instance.new("Frame")
+    WatermarkFrame.Size = UDim2.new(0, 220, 0, 30)
+    WatermarkFrame.Position = UDim2.new(0, 100, 0, 100)
+    WatermarkFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    WatermarkFrame.BorderColor3 = accentColor
+    WatermarkFrame.BorderSizePixel = 2
+    WatermarkFrame.Parent = ScreenGui
 
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(1, -10, 1, 0)
-    label.Position = UDim2.new(0, 5, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = "FPS: 0 | Ping: 0ms"
-    label.TextColor3 = Color3.new(1, 1, 1)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 14
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -10, 1, 0)
+    Label.Position = UDim2.new(0, 5, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = "FPS: 0 | Ping: 0ms"
+    Label.TextColor3 = Color3.new(1, 1, 1)
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Font = Enum.Font.SourceSans
+    Label.TextSize = 14
+    Label.Parent = WatermarkFrame
 
-    local outline = Instance.new("Frame", gui)
-    outline.Size = frame.Size
-    outline.BackgroundTransparency = 0.7
-    outline.BackgroundColor3 = Color3.new(0, 0, 0)
-    outline.BorderSizePixel = 2
-    outline.BorderColor3 = Color3.new(0, 0, 0)
-    outline.Visible = false
+    local ghostOutline = Instance.new("Frame")
+    ghostOutline.Size = WatermarkFrame.Size
+    ghostOutline.Position = WatermarkFrame.Position
+    ghostOutline.BackgroundTransparency = 0.7
+    ghostOutline.BackgroundColor3 = Color3.new(0, 0, 0)
+    ghostOutline.BorderColor3 = Color3.new(0, 0, 0)
+    ghostOutline.BorderSizePixel = 2
+    ghostOutline.Visible = false
+    ghostOutline.Parent = ScreenGui
 
-    local dragging, offset, target
-    frame.InputBegan:Connect(function(input)
+    local dragging = false
+    local dragOffset = Vector2.new()
+    local targetPosition
+
+    WatermarkFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
-            offset = input.Position - frame.AbsolutePosition
-            outline.Position = frame.Position
-            outline.Size = frame.Size
-            outline.Visible = true
-            target = frame.Position
+            dragOffset = Vector2.new(input.Position.X - WatermarkFrame.AbsolutePosition.X, input.Position.Y - WatermarkFrame.AbsolutePosition.Y)
+            ghostOutline.Position = WatermarkFrame.Position
+            ghostOutline.Size = WatermarkFrame.Size
+            ghostOutline.Visible = true
+            targetPosition = WatermarkFrame.Position
         end
     end)
 
-    UIS.InputChanged:Connect(function(input)
+    UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            target = UDim2.new(0, input.Position.X - offset.X, 0, input.Position.Y - offset.Y)
+            targetPosition = UDim2.new(0, input.Position.X - dragOffset.X, 0, input.Position.Y - dragOffset.Y)
         end
     end)
 
-    UIS.InputEnded:Connect(function(input)
+    UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 and dragging then
             dragging = false
-            frame.Position = outline.Position
-            outline.Visible = false
+            WatermarkFrame.Position = ghostOutline.Position
+            ghostOutline.Visible = false
         end
     end)
 
     RunService.RenderStepped:Connect(function()
-        if dragging and target then
-            local cur = outline.Position
-            outline.Position = UDim2.new(0, cur.X.Offset + (target.X.Offset - cur.X.Offset) * 0.25, 0, cur.Y.Offset + (target.Y.Offset - cur.Y.Offset) * 0.25)
+        if dragging and targetPosition then
+            local currentPos = ghostOutline.Position or UDim2.new(0, 0, 0, 0)
+            ghostOutline.Position = UDim2.new(
+                0,
+                currentPos.X.Offset + (targetPosition.X.Offset - currentPos.X.Offset) * 0.25,
+                0,
+                currentPos.Y.Offset + (targetPosition.Y.Offset - currentPos.Y.Offset) * 0.25
+            )
         end
     end)
 
-    local last = tick()
-    local frames, fps, ping = 0, 0, 0
+    -- FPS + Ping updater
+    local lastTime = tick()
+    local frames = 0
+    local fps = 0
+    local ping = 0
+
     RunService.RenderStepped:Connect(function()
         frames += 1
-        if tick() - last >= 1 then
+        if tick() - lastTime >= 1 then
             fps = frames
             frames = 0
-            last = tick()
-            local net = Stats:FindFirstChild("Network")
-            local incoming = net and net:FindFirstChild("IncomingReplicationLag")
+            lastTime = tick()
+
+            local stats = game:GetService("Stats")
+            local incoming = stats:FindFirstChild("Network"):FindFirstChild("IncomingReplicationLag")
             ping = incoming and math.floor(incoming.Value * 1000 + 0.5) or 0
-            label.Text = string.format("FPS: %d | Ping: %dms", fps, ping)
+
+            Label.Text = string.format("FPS: %d | Ping: %dms", fps, ping)
         end
     end)
 end
