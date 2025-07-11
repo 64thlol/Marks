@@ -1,0 +1,205 @@
+--// Config
+getgenv().LibraryColor = getgenv().LibraryColor or "#FF5555"
+
+--// Utilities
+local function HexToRGB(hex)
+    hex = hex:gsub("#", "")
+    return Color3.fromRGB(tonumber("0x" .. hex:sub(1, 2)), tonumber("0x" .. hex:sub(3, 4)), tonumber("0x" .. hex:sub(5, 6)))
+end
+
+local accentColor = HexToRGB(getgenv().LibraryColor)
+
+--// NOTIFICATION SYSTEM
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "NotificationGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+local notificationArea = Instance.new("Frame")
+notificationArea.BackgroundTransparency = 1
+notificationArea.Position = UDim2.new(0, 10, 0, 40)
+notificationArea.Size = UDim2.new(0, 300, 0, 200)
+notificationArea.Parent = screenGui
+
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.FillDirection = Enum.FillDirection.Vertical
+uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiListLayout.Padding = UDim.new(0, 4)
+uiListLayout.Parent = notificationArea
+
+function LibraryNotify(text, duration)
+    duration = duration or 5
+    local textSize = 14
+    local padding = 8
+    local textLength = #text
+    local width = math.clamp(textLength * (textSize * 0.6), 100, 280)
+    local height = textSize + padding
+
+    local outerFrame = Instance.new("Frame")
+    outerFrame.Size = UDim2.new(0, 0, 0, height)
+    outerFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    outerFrame.BorderColor3 = Color3.fromRGB(10, 10, 10)
+    outerFrame.BorderSizePixel = 1
+    outerFrame.ClipsDescendants = true
+    outerFrame.Parent = notificationArea
+
+    local accentBar = Instance.new("Frame")
+    accentBar.Size = UDim2.new(0, 4, 1, 0)
+    accentBar.Position = UDim2.new(0, 0, 0, 0)
+    accentBar.BackgroundColor3 = accentColor
+    accentBar.BorderSizePixel = 0
+    accentBar.Parent = outerFrame
+
+    local label = Instance.new("TextLabel")
+    label.Text = text
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = textSize
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Position = UDim2.new(0, 8, 0, 0)
+    label.Size = UDim2.new(1, -8, 1, 0)
+    label.Parent = outerFrame
+
+    local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local goal = {Size = UDim2.new(0, width, 0, height)}
+    TweenService:Create(outerFrame, tweenInfo, goal):Play()
+
+    task.delay(duration, function()
+        local closeGoal = {Size = UDim2.new(0, 0, 0, height)}
+        local closeTween = TweenService:Create(outerFrame, tweenInfo, closeGoal)
+        closeTween:Play()
+        closeTween.Completed:Wait()
+        outerFrame:Destroy()
+    end)
+end
+
+--// WATERMARK
+function LibraryWatermark(text)
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Parent = game:GetService("CoreGui")
+
+    local WatermarkFrame = Instance.new("Frame")
+    WatermarkFrame.Size = UDim2.new(0, 150, 0, 30)
+    WatermarkFrame.Position = UDim2.new(0, 20, 0, 20)
+    WatermarkFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    WatermarkFrame.BorderColor3 = accentColor
+    WatermarkFrame.BorderSizePixel = 2
+    WatermarkFrame.Parent = ScreenGui
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -10, 1, 0)
+    Label.Position = UDim2.new(0, 5, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = text or "Watermark"
+    Label.TextColor3 = Color3.new(1, 1, 1)
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Font = Enum.Font.SourceSans
+    Label.TextSize = 14
+    Label.Parent = WatermarkFrame
+end
+
+--// STATUS (FPS + Ping)
+function LibraryStatus()
+    local UserInputService = game:GetService("UserInputService")
+    local RunService = game:GetService("RunService")
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Parent = game:GetService("CoreGui")
+
+    local WatermarkFrame = Instance.new("Frame")
+    WatermarkFrame.Size = UDim2.new(0, 220, 0, 30)
+    WatermarkFrame.Position = UDim2.new(0, 100, 0, 100)
+    WatermarkFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    WatermarkFrame.BorderColor3 = accentColor
+    WatermarkFrame.BorderSizePixel = 2
+    WatermarkFrame.Parent = ScreenGui
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -10, 1, 0)
+    Label.Position = UDim2.new(0, 5, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = "FPS: 0 | Ping: 0ms"
+    Label.TextColor3 = Color3.new(1, 1, 1)
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Font = Enum.Font.SourceSans
+    Label.TextSize = 14
+    Label.Parent = WatermarkFrame
+
+    local ghostOutline = Instance.new("Frame")
+    ghostOutline.Size = WatermarkFrame.Size
+    ghostOutline.Position = WatermarkFrame.Position
+    ghostOutline.BackgroundTransparency = 0.7
+    ghostOutline.BackgroundColor3 = Color3.new(0, 0, 0)
+    ghostOutline.BorderColor3 = Color3.new(0, 0, 0)
+    ghostOutline.BorderSizePixel = 2
+    ghostOutline.Visible = false
+    ghostOutline.Parent = ScreenGui
+
+    local dragging = false
+    local dragOffset = Vector2.new()
+    local targetPosition
+
+    WatermarkFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragOffset = Vector2.new(input.Position.X - WatermarkFrame.AbsolutePosition.X, input.Position.Y - WatermarkFrame.AbsolutePosition.Y)
+            ghostOutline.Position = WatermarkFrame.Position
+            ghostOutline.Size = WatermarkFrame.Size
+            ghostOutline.Visible = true
+            targetPosition = WatermarkFrame.Position
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            targetPosition = UDim2.new(0, input.Position.X - dragOffset.X, 0, input.Position.Y - dragOffset.Y)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and dragging then
+            dragging = false
+            WatermarkFrame.Position = ghostOutline.Position
+            ghostOutline.Visible = false
+        end
+    end)
+
+    RunService.RenderStepped:Connect(function()
+        if dragging and targetPosition then
+            local currentPos = ghostOutline.Position or UDim2.new(0, 0, 0, 0)
+            ghostOutline.Position = UDim2.new(
+                0,
+                currentPos.X.Offset + (targetPosition.X.Offset - currentPos.X.Offset) * 0.25,
+                0,
+                currentPos.Y.Offset + (targetPosition.Y.Offset - currentPos.Y.Offset) * 0.25
+            )
+        end
+    end)
+
+    -- FPS + Ping updater
+    local lastTime = tick()
+    local frames = 0
+    local fps = 0
+    local ping = 0
+
+    RunService.RenderStepped:Connect(function()
+        frames += 1
+        if tick() - lastTime >= 1 then
+            fps = frames
+            frames = 0
+            lastTime = tick()
+
+            local stats = game:GetService("Stats")
+            local incoming = stats:FindFirstChild("Network"):FindFirstChild("IncomingReplicationLag")
+            ping = incoming and math.floor(incoming.Value * 1000 + 0.5) or 0
+
+            Label.Text = string.format("FPS: %d | Ping: %dms", fps, ping)
+        end
+    end)
+end
